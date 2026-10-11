@@ -43,7 +43,7 @@ postseason_team_games_df = postseason_df.drop_duplicates(
 # Part 1 - Bringing in the Big Guns: Starters in Relief
 # --------------------
 
-# Definition
+# Definitions
 
 # DataFrames
 
@@ -96,6 +96,7 @@ qualified_starters_in_relief_walks = qualified_starters_in_relief_df["p_w"].sum(
 qualified_starters_in_relief_era = (qualified_starters_in_relief_earned_runs * 27) / qualified_starters_in_relief_outs
 qualified_starters_in_relief_whip = ((qualified_starters_in_relief_hits + qualified_starters_in_relief_walks) * 3) / qualified_starters_in_relief_outs
 
+# print(len(qualified_starters_in_relief_df)) # >>> 281
 # print(round(qualified_starters_in_relief_era, 2)) # >>> 4.05
 # print(round(qualified_starters_in_relief_whip, 2)) # >>> 1.35
 
@@ -108,6 +109,7 @@ all_others_in_relief_walks = all_others_in_relief_df["p_w"].sum()
 all_others_in_relief_era = (all_others_in_relief_earned_runs * 27) / all_others_in_relief_outs
 all_others_in_relief_whip = ((all_others_in_relief_hits + all_others_in_relief_walks) * 3) / all_others_in_relief_outs
 
+# print(len(all_others_in_relief_df))
 # print(round(all_others_in_relief_era, 2)) # >>> 3.52
 # print(round(all_others_in_relief_whip, 2)) # >>> 1.24
 
@@ -197,26 +199,144 @@ win_percentage_without_qualified_starter = (
 # Part 2 - Let Him Ride: Extended Starts
 # --------------------
 
-# Definition
+# Definitions
 # Extended Start: Starter records at least 21 outs, equivalent to 7+ innings pitched
 
 # DataFrames
+# Extended Starts DataFrame
+extended_starts_df = postseason_df[
+    (postseason_df["p_seq"] == 1) &
+    (postseason_df["p_ipouts"] >= 21)
+]
+# print(len(extended_starts_df)) # >>> 387
+
+# All Other Starts DataFrame
+all_other_starts_df = postseason_df[
+    (postseason_df["p_seq"] == 1) &
+    (postseason_df["p_ipouts"] < 21)
+]
+# print(len(all_other_starts_df)) # >>> 1397
 
 # a) Most Appearances
+extended_starts_by_pitcher = (extended_starts_df["id"].value_counts())
+# print(extended_starts_by_pitcher[extended_starts_by_pitcher >= 9])
 
 # b) Over Time
+extended_start_count_by_season = (extended_starts_df.groupby("season")["id"].count())
+# print(extended_start_count_by_season)
 
 # c) ERA and WHIP
+# Determining ERA and WHIP for Extended Starts
+extended_start_outs = extended_starts_df["p_ipouts"].sum()
+extended_start_earned_runs = extended_starts_df["p_er"].sum()
+extended_start_hits = extended_starts_df["p_h"].sum()
+extended_start_walks = extended_starts_df["p_w"].sum()
+
+extended_start_era = (extended_start_earned_runs * 27) / extended_start_outs
+extended_start_whip = ((extended_start_hits + extended_start_walks) * 3) / extended_start_outs
+
+# print(round(extended_start_era, 2)) # >>> 1.61
+# print(round(extended_start_whip, 2)) # >>> 0.81
+
+# Determining ERA and WHIP for All Other Starts
+all_other_start_outs = all_other_starts_df["p_ipouts"].sum()
+all_other_start_earned_runs = all_other_starts_df["p_er"].sum()
+all_other_start_hits = all_other_starts_df["p_h"].sum()
+all_other_start_walks = all_other_starts_df["p_w"].sum()
+
+all_other_start_era = (all_other_start_earned_runs * 27) / all_other_start_outs
+all_other_start_whip = ((all_other_start_hits + all_other_start_walks) * 3) / all_other_start_outs
+
+# print(round(all_other_start_era, 2)) # >>> 5.11
+# print(round(all_other_start_whip, 2)) # >>> 1.48
 
 # d) K% and BB%
+# Determining K% and BB% for Extended Starts
+extended_start_strikeouts = extended_starts_df["p_k"].sum()
+extended_start_batters_faced = extended_starts_df["p_bfp"].sum()
+
+extended_start_k_percentage = (
+    extended_start_strikeouts /
+    extended_start_batters_faced
+) * 100
+# print(round(extended_start_k_percentage, 2)) # >>> 23.93%
+
+extended_start_bb_percentage = (
+    extended_start_walks /
+    extended_start_batters_faced
+) * 100
+# print(round(extended_start_bb_percentage, 2)) # >>> 5.27%
+
+# Determining K% and BB% for All Other Starts
+all_other_start_strikeouts = all_other_starts_df["p_k"].sum()
+all_other_start_batters_faced = all_other_starts_df["p_bfp"].sum()
+
+all_other_start_k_percentage = (
+    all_other_start_strikeouts /
+    all_other_start_batters_faced
+) * 100
+# print(round(all_other_start_k_percentage, 2)) # >>> 19.49%
+
+all_other_start_bb_percentage = (
+    all_other_start_walks /
+    all_other_start_batters_faced
+) * 100
+# print(round(all_other_start_bb_percentage, 2)) # >>> 9.15%
 
 # e) Win%
+# Determining Win% With and Without an Extended Start
+
+# Creating one row for each team-game with an extended start
+extended_start_team_games_df = extended_starts_df.drop_duplicates(
+    subset=["gid", "team"]).reset_index(drop=True)
+
+team_games_with_extended_start = []
+team_games_without_extended_start = []
+
+for index, team_game in postseason_team_games_df.iterrows():
+    matching_team_game = extended_start_team_games_df[
+        (extended_start_team_games_df["gid"] == team_game["gid"]) &
+        (extended_start_team_games_df["team"] == team_game["team"])
+    ]
+
+    if len(matching_team_game) > 0:
+        team_games_with_extended_start.append(team_game)
+    else:
+        team_games_without_extended_start.append(team_game)
+
+# Convert lists into DataFrames
+team_games_with_extended_start_df = pd.DataFrame(
+    team_games_with_extended_start).reset_index(drop=True)
+
+team_games_without_extended_start_df = pd.DataFrame(
+    team_games_without_extended_start).reset_index(drop=True)
+
+# Calculating team win percentage for each group
+wins_with_extended_start = team_games_with_extended_start_df["win"].sum()
+wins_without_extended_start = team_games_without_extended_start_df["win"].sum()
+
+win_percentage_with_extended_start = (
+    wins_with_extended_start /
+    len(team_games_with_extended_start_df)
+) * 100
+
+win_percentage_without_extended_start = (
+    wins_without_extended_start /
+    len(team_games_without_extended_start_df)
+) * 100
+
+# print(len(team_games_with_extended_start_df)) # >>> 387
+# print(round(win_percentage_with_extended_start, 2)) # >>> 71.58%
+
+# print(len(team_games_without_extended_start_df)) # >>> 1397
+# print(round(win_percentage_without_extended_start, 2)) # >>> 44.02%
+
 
 # --------------------
 # Part 3 - All Hands on Deck: Bullpen Games
 # --------------------
 
-# Definition
+# Definitions
 
 # DataFrames
 
@@ -235,7 +355,7 @@ win_percentage_without_qualified_starter = (
 # Part 4 - No Days Off: Starters on Short Rest
 # --------------------
 
-# Definition
+# Definitions
 
 # DataFrames
 
