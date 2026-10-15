@@ -3,9 +3,9 @@
 # 18 September 2026 -
 
 # Import Statements
-import numpy as np
+# import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
 # --------------------
 # Introduction
@@ -384,9 +384,13 @@ all_other_games_df = pd.DataFrame(all_other_games).reset_index(drop=True)
 
 # print(len(bullpen_games_df)) # >>> 50
 # print(len(all_other_games_df)) # >>> 1734
-print(bullpen_games_df[["date", "team", "opp", "starting_pitcher_id", "number_of_pitchers", "most_outs_percentage", "win"]])
+# print(bullpen_games_df)
 
 # a) Most Appearances
+bullpen_games_by_team = (bullpen_games_df["team"].value_counts())
+print(bullpen_games_by_team)
+
+# bullpen_game_percentage_by_team =
 
 # b) Over Time
 
@@ -424,7 +428,7 @@ print(bullpen_games_df[["date", "team", "opp", "starting_pitcher_id", "number_of
 
 
 
-# OTHER PITCHING STRATEGIES TO ANALYZE
+# PITCHING STRATEGIES TO ANALYZE
 # 1. Bringing in the Big Guns: Starters in Relief
 # 2. Let Him Ride: Extended Starts
 # ---> 7+ Innings Pitched
