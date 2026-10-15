@@ -337,8 +337,54 @@ win_percentage_without_extended_start = (
 # --------------------
 
 # Definitions
+# Bullpen Game: No pitcher records more than 30% of the team's outs, the team uses at least five pitchers,
+# and the starter was not a qualified starter during the regular season
 
 # DataFrames
+# Identifying Bullpen Games
+bullpen_games = []
+all_other_games = []
+
+for index, team_game in postseason_team_games_df.iterrows():
+    team_pitchers = postseason_df[
+        (postseason_df["gid"] == team_game["gid"]) &
+        (postseason_df["team"] == team_game["team"])]
+
+    total_team_outs = team_pitchers["p_ipouts"].sum()
+    number_of_pitchers = len(team_pitchers)
+    most_outs_by_one_pitcher = team_pitchers["p_ipouts"].max()
+
+    most_outs_percentage = (most_outs_by_one_pitcher / total_team_outs) * 100
+
+    starting_pitcher = team_pitchers[
+        team_pitchers["p_seq"] == 1
+        ].iloc[0]
+
+    matching_qualified_starter = qualified_starters_df[
+        (qualified_starters_df["id"] == starting_pitcher["id"]) &
+        (qualified_starters_df["season"] == starting_pitcher["season"])]
+
+    team_game["number_of_pitchers"] = number_of_pitchers
+    team_game["most_outs_percentage"] = most_outs_percentage
+    team_game["starting_pitcher_id"] = starting_pitcher["id"]
+
+    if (
+        most_outs_percentage <= 30
+        and number_of_pitchers >= 5
+        and len(matching_qualified_starter) == 0
+    ):
+        bullpen_games.append(team_game)
+    else:
+        all_other_games.append(team_game)
+
+# Convert lists into DataFrames
+bullpen_games_df = pd.DataFrame(bullpen_games).reset_index(drop=True)
+
+all_other_games_df = pd.DataFrame(all_other_games).reset_index(drop=True)
+
+# print(len(bullpen_games_df)) # >>> 50
+# print(len(all_other_games_df)) # >>> 1734
+print(bullpen_games_df[["date", "team", "opp", "starting_pitcher_id", "number_of_pitchers", "most_outs_percentage", "win"]])
 
 # a) Most Appearances
 
