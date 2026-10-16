@@ -388,11 +388,25 @@ all_other_games_df = pd.DataFrame(all_other_games).reset_index(drop=True)
 
 # a) Most Appearances
 bullpen_games_by_team = (bullpen_games_df["team"].value_counts())
-print(bullpen_games_by_team)
+# print(bullpen_games_by_team)
 
-# bullpen_game_percentage_by_team =
+# Determining Bullpen Game Percentage by Team
+postseason_games_by_team = (postseason_team_games_df["team"].value_counts())
+
+bullpen_game_percentage_by_team = (bullpen_games_by_team / postseason_games_by_team) * 100
+
+bullpen_game_percentage_by_team = bullpen_game_percentage_by_team.fillna(0).sort_values(ascending=False)
+
+# print(round(bullpen_game_percentage_by_team, 2)) # >>> COL, TBA, CLE, SDN, HOU
 
 # b) Over Time
+bullpen_game_count_by_season = (bullpen_games_df.groupby("season")["team"].count())
+bullpen_game_count_by_season = bullpen_game_count_by_season.reindex(
+    [2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009,
+     2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019,
+     2021, 2022, 2023, 2024, 2025],
+    fill_value=0)
+print(bullpen_game_count_by_season)
 
 # c) ERA and WHIP
 
