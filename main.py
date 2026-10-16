@@ -386,6 +386,33 @@ all_other_games_df = pd.DataFrame(all_other_games).reset_index(drop=True)
 # print(len(all_other_games_df)) # >>> 1734
 # print(bullpen_games_df)
 
+# Combining all pitching appearances from bullpen games and all other games into separate DatFrames
+bullpen_game_pitching_appearances = []
+all_other_game_pitching_appearances = []
+
+for index, appearance in postseason_df.iterrows():
+    matching_bullpen_game = bullpen_games_df[
+        (bullpen_games_df["gid"] == appearance["gid"]) &
+        (bullpen_games_df["team"] == appearance["team"])
+    ]
+
+    if len(matching_bullpen_game) > 0:
+        bullpen_game_pitching_appearances.append(appearance)
+    else:
+        all_other_game_pitching_appearances.append(appearance)
+
+# Convert lists into DataFrames
+bullpen_game_pitching_df = pd.DataFrame(
+    bullpen_game_pitching_appearances).reset_index(drop=True)
+# print(len(bullpen_game_pitching_df)) # >>> 348
+
+all_other_game_pitching_df = pd.DataFrame(
+    all_other_game_pitching_appearances).reset_index(drop=True)
+# print(len(all_other_game_pitching_df)) # 7768
+
+# print(len(bullpen_game_pitching_df)) # >>> 348
+# print(len(all_other_game_pitching_df)) # >>> 7768
+
 # a) Most Appearances
 bullpen_games_by_team = (bullpen_games_df["team"].value_counts())
 # print(bullpen_games_by_team)
@@ -406,9 +433,32 @@ bullpen_game_count_by_season = bullpen_game_count_by_season.reindex(
      2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019,
      2021, 2022, 2023, 2024, 2025],
     fill_value=0)
-print(bullpen_game_count_by_season)
+# print(bullpen_game_count_by_season)
 
 # c) ERA and WHIP
+# Determining ERA and WHIP for Bullpen Games
+bullpen_game_outs = bullpen_game_pitching_df["p_ipouts"].sum()
+bullpen_game_earned_runs = bullpen_game_pitching_df["p_er"].sum()
+bullpen_game_hits = bullpen_game_pitching_df["p_h"].sum()
+bullpen_game_walks = bullpen_game_pitching_df["p_w"].sum()
+
+bullpen_game_era = (bullpen_game_earned_runs * 27) / bullpen_game_outs
+bullpen_game_whip = ((bullpen_game_hits + bullpen_game_walks) * 3) / bullpen_game_outs
+
+# print(round(bullpen_game_era, 2)) # >>> 5.08
+# print(round(bullpen_game_whip, 2)) # >>> 1.51
+
+# Determining ERA and WHIP for All Other Games
+all_other_game_outs = all_other_game_pitching_df["p_ipouts"].sum()
+all_other_game_earned_runs = all_other_game_pitching_df["p_er"].sum()
+all_other_game_hits = all_other_game_pitching_df["p_h"].sum()
+all_other_game_walks = all_other_game_pitching_df["p_w"].sum()
+
+all_other_game_era = (all_other_game_earned_runs * 27) / all_other_game_outs
+all_other_game_whip = ((all_other_game_hits + all_other_game_walks) * 3) / all_other_game_outs
+
+# print(round(all_other_game_era, 2)) # >>> 3.80
+# print(round(all_other_game_whip, 2)) # >>> 1.25
 
 # d) K% and BB%
 
