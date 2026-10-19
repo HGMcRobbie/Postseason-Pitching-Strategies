@@ -44,6 +44,9 @@ postseason_team_games_df = postseason_df.drop_duplicates(
 # --------------------
 
 # Definitions
+# Qualified Starter: Pitcher records at least 20 regular season starts and 486 outs,
+# equivalent to 162 innings pitched, during that same season
+# Relief Appearance: Pitcher enters the postseason game after the starting pitcher
 
 # DataFrames
 
@@ -80,7 +83,7 @@ all_others_in_relief_df = pd.DataFrame(all_others_in_relief_appearances).reset_i
 
 # a) Most Appearances
 qualified_starters_in_relief_appearances_by_pitcher = (qualified_starters_in_relief_df["id"].value_counts())
-# print(qualified_startesr_in_relief_appearances_by_pitcher[qualified_starters_in_relief_appearances_by_pitcher > 6])
+# print(qualified_starters_in_relief_appearances_by_pitcher[qualified_starters_in_relief_appearances_by_pitcher > 6])
 
 # b) Over Time
 qualified_starter_in_relief_count_by_season = (qualified_starters_in_relief_df.groupby("season")["id"].count())
@@ -386,7 +389,7 @@ all_other_games_df = pd.DataFrame(all_other_games).reset_index(drop=True)
 # print(len(all_other_games_df)) # >>> 1734
 # print(bullpen_games_df)
 
-# Combining all pitching appearances from bullpen games and all other games into separate DatFrames
+# Combining all pitching appearances from bullpen games and all other games into separate DataFrames
 bullpen_game_pitching_appearances = []
 all_other_game_pitching_appearances = []
 
@@ -461,8 +464,46 @@ all_other_game_whip = ((all_other_game_hits + all_other_game_walks) * 3) / all_o
 # print(round(all_other_game_whip, 2)) # >>> 1.25
 
 # d) K% and BB%
+# Determining K% and BB% for Bullpen Games
+bullpen_game_strikeouts = bullpen_game_pitching_df["p_k"].sum()
+bullpen_game_batters_faced = bullpen_game_pitching_df["p_bfp"].sum()
+
+bullpen_game_k_percentage = (bullpen_game_strikeouts / bullpen_game_batters_faced) * 100
+bullpen_game_bb_percentage = (bullpen_game_walks / bullpen_game_batters_faced) * 100
+
+bullpen_game_k_bb_ratio = (bullpen_game_strikeouts / bullpen_game_walks)
+
+# print(round(bullpen_game_k_percentage, 2)) # >>> 22.56%
+# print(round(bullpen_game_bb_percentage, 2)) # >>> 10.37%
+# print(round(bullpen_game_k_bb_ratio, 2)) # >>> 2.18
+
+# Determining K% and BB% for All Other Games
+all_other_game_strikeouts = all_other_game_pitching_df["p_k"].sum()
+all_other_game_batters_faced = all_other_game_pitching_df["p_bfp"].sum()
+
+all_other_game_k_percentage = (all_other_game_strikeouts / all_other_game_batters_faced) * 100
+all_other_game_bb_percentage = (all_other_game_walks / all_other_game_batters_faced) * 100
+
+all_other_game_k_bb_ratio = (all_other_game_strikeouts / all_other_game_walks)
+
+# print(round(all_other_game_k_percentage, 2)) # >>> 21.71%
+# print(round(all_other_game_bb_percentage, 2)) # >>> 8.61%
+# print(round(all_other_game_k_bb_ratio, 2)) # >>> 2.52
 
 # e) Win%
+# Determining Win% With and Without a Bullpen Game
+
+wins_with_bullpen_game = bullpen_games_df["win"].sum()
+wins_without_bullpen_game = all_other_games_df["win"].sum()
+
+win_percentage_with_bullpen_game = (wins_with_bullpen_game / len(bullpen_games_df)) * 100
+win_percentage_without_bullpen_game = (wins_without_bullpen_game / len(all_other_games_df)) * 100
+
+# print(len(bullpen_games_df)) # >>> 50
+# print(round(win_percentage_with_bullpen_game, 2)) # >>> 38.0
+
+# print(len(all_other_games_df)) # 1734
+# print(round(win_percentage_without_bullpen_game, 2)) # 50.35
 
 
 # --------------------
@@ -470,12 +511,64 @@ all_other_game_whip = ((all_other_game_hits + all_other_game_walks) * 3) / all_o
 # --------------------
 
 # Definitions
+# Short rest: Starting pitcher starts a postseason game after receiving
+# no more than two complete days of rest since his previous appearance
 
 # DataFrames
 
+# Creating Regular Season and Postseason Appearances DataFrame
+regular_and_postseason_game_types = ["regular", "divisionseries", "lcs", "worldseries", "wildcard", "playoff"]
+regular_and_postseason_df = pitching_df_since_2000[pitching_df_since_2000["gametype"].isin(regular_and_postseason_game_types)]
+
+# Creating Postseason Starts DataFrame
+postseason_starts_df = postseason_df[postseason_df["p_seq"] == 1]
+
+# Identifying Short Rest and Normal Rest Starts
+short_rest_starts = []
+normal_rest_starts = []
+starts_without_previous_appearance = []
+
+for index, start in postseason_starts_df.iterrows():
+    previous_appearances = regular_and_postseason_df[
+        (regular_and_postseason_df["id"] == start["id"]) &
+        (regular_and_postseason_df["season"] == start["season"]) &
+        (regular_and_postseason_df["date"] < start["date"])
+    ]
+
+    if len(previous_appearances) > 0:
+        previous_appearance_date = previous_appearances["date"].max()
+
+        complete_days_of_rest = (start["date"] - previous_appearance_date).days - 1
+
+        start["complete_days_of_rest"] = complete_days_of_rest
+        start["previous_appearance_date"] = previous_appearance_date
+
+        if complete_days_of_rest <= 2:
+            short_rest_starts.append(start)
+        else:
+            normal_rest_starts.append(start)
+    else:
+        starts_without_previous_appearance.append(start)
+
+# Convert lists into DataFrames
+short_rest_starts_df = pd.DataFrame(short_rest_starts).reset_index(drop=True)
+normal_rest_starts_df = pd.DataFrame(normal_rest_starts).reset_index(drop=True)
+starts_without_previous_appearance_df = pd.DataFrame(starts_without_previous_appearance).reset_index(drop=True)
+
+# print(len(short_rest_starts_df)) # >>> 62
+# print(len(normal_rest_starts_df)) # >>> 1722
+# print(len(starts_without_previous_appearance_df)) # >>> 0
+
 # a) Most Appearances
+short_rest_starts_by_pitcher = (short_rest_starts_df["id"].value_counts())
+# print(short_rest_starts_by_pitcher[short_rest_starts_by_pitcher >= 2])
+
+short_rest_starts_by_team = (short_rest_starts_df["team"].value_counts())
+# print(short_rest_starts_by_team[short_rest_starts_by_team >= 4])
 
 # b) Over Time
+short_rest_start_count_by_season = (short_rest_starts_df.groupby("season")["id"].count())
+print(short_rest_start_count_by_season)
 
 # c) ERA and WHIP
 
@@ -497,6 +590,6 @@ all_other_game_whip = ((all_other_game_hits + all_other_game_walks) * 3) / all_o
 # 2. Let Him Ride: Extended Starts
 # ---> 7+ Innings Pitched
 # 3. All Hands on Deck: Bullpen Games
-# ---> >= 5 Pitchers and Starter went <= 3 innings ??
+# ---> >= 5 Pitchers, Non-Qualified Starter, & each pitcher records <= 30% of the team's outs
 # 4. No Days Off: Starters on Short Rest
 # ---> Maybe 2 or less full days of rest
